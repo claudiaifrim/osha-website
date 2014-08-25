@@ -59,6 +59,12 @@ List of patches
   *
   * migrate/migrate_file_rename_option.patch
 
+* views_bulk_operations (7.x-3.2)
+  * Add support for multi page selection
+  *
+  * the patch will be published on this issue https://www.drupal.org/node/1207348
+  *
+  * views_bulk_operations/views_bulk_operations-integrate-multi-page-selection-D3.patch
 
 Patch documentation should be in the following format:
 

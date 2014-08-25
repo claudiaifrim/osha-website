@@ -4,6 +4,7 @@
       $('.vbo-views-form', context).each(function() {
         Drupal.vbo.initTableBehaviors(this);
         Drupal.vbo.initGenericBehaviors(this);
+        Drupal.vbo.initPreserveSelectBehaviors(this);
       });
     }
   }
@@ -32,6 +33,21 @@
     // This is the "select all" checkbox in (each) table header.
     $('.vbo-table-select-all', form).click(function() {
       var table = $(this).closest('table')[0];
+
+      var toToggleIDs = [];
+	  if( this.checked ) {
+	    $('input[id^="edit-views-bulk-operations"]:not(:disabled):not(:checked)', table).each(function(){
+	      toToggleIDs.push($(this).val());
+        });
+	  }
+	  else {
+	    $('input[id^="edit-views-bulk-operations"]:not(:disabled):checked', table).each(function(){
+          toToggleIDs.push($(this).val());
+        });
+	  }
+      var view_machine_name = $('form', form).attr('view_machine_name');
+      Drupal.vbo.toggleEntityIDs(toToggleIDs, view_machine_name);
+
       $('input[id^="edit-views-bulk-operations"]:not(:disabled)', table).attr('checked', this.checked);
 
       // Toggle the visibility of the "select all" row (if any).
@@ -119,6 +135,27 @@
           }
         }
       }
+    });
+  }
+
+  // Instantiate all checkboxes to call the toggleEntityIDs function on click
+  Drupal.vbo.initPreserveSelectBehaviors = function(form) {
+    var view_machine_name = $('form', form).attr('view_machine_name');
+    $('input[id^="edit-views-bulk-operations"]', form).each(function() {
+      var entity_id = $(this).val();
+      $(this).click(function(event){
+	    Drupal.vbo.toggleEntityIDs([entity_id], view_machine_name);
+	  });
+    });
+  }
+
+  // Preserve the selection status of the checkbox via an AJAX call
+  // Parameters are the machine_name of the relative view, and a comma-separated list of entity_ids
+  Drupal.vbo.toggleEntityIDs = function(entity_ids_array, view_machine_name){
+    $.ajax({
+      type: 'GET',
+      url: '/vbo_preserve_selection/toggle/' + view_machine_name + '/' + entity_ids_array.join(','),
+      dataType: 'json'
     });
   }
 

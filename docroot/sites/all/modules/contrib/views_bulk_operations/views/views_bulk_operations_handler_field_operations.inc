@@ -251,10 +251,15 @@ class views_bulk_operations_handler_field_operations extends views_handler_field
         );
       }
       else {
+        // Get the SESSION stored list of entity_ids that are toggled-on/selected
+        $preserved_selection = array();
+        if( isset($_SESSION['views_bulk_operations']['preserve_selection'][$this->view->name]['values']) )
+          $preserved_selection = array_keys(array_filter($_SESSION['views_bulk_operations']['preserve_selection'][$this->view->name]['values']));
+
         $form[$this->options['id']][$row_index] = array(
           '#type' => 'checkbox',
           '#return_value' => $entity_id,
-          '#default_value' => FALSE,
+          '#default_value' => in_array($entity_id, $preserved_selection),
           '#attributes' => array('class' => array('vbo-select')),
         );
       }

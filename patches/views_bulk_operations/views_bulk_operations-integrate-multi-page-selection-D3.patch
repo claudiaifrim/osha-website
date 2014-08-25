@@ -1,0 +1,168 @@
+diff --git a/docroot/sites/all/modules/contrib/views_bulk_operations/js/views_bulk_operations.js b/docroot/sites/all/modules/contrib/views_bulk_operations/js/views_bulk_operations.js
+index aeeecc6..4a0b72d 100644
+--- a/docroot/sites/all/modules/contrib/views_bulk_operations/js/views_bulk_operations.js
++++ b/docroot/sites/all/modules/contrib/views_bulk_operations/js/views_bulk_operations.js
+@@ -4,6 +4,7 @@
+       $('.vbo-views-form', context).each(function() {
+         Drupal.vbo.initTableBehaviors(this);
+         Drupal.vbo.initGenericBehaviors(this);
++        Drupal.vbo.initPreserveSelectBehaviors(this);
+       });
+     }
+   }
+@@ -32,6 +33,21 @@
+     // This is the "select all" checkbox in (each) table header.
+     $('.vbo-table-select-all', form).click(function() {
+       var table = $(this).closest('table')[0];
++
++      var toToggleIDs = [];
++	  if( this.checked ) {
++	    $('input[id^="edit-views-bulk-operations"]:not(:disabled):not(:checked)', table).each(function(){
++	      toToggleIDs.push($(this).val());
++        });
++	  }
++	  else {
++	    $('input[id^="edit-views-bulk-operations"]:not(:disabled):checked', table).each(function(){
++          toToggleIDs.push($(this).val());
++        });
++	  }
++      var view_machine_name = $('form', form).attr('view_machine_name');
++      Drupal.vbo.toggleEntityIDs(toToggleIDs, view_machine_name);
++
+       $('input[id^="edit-views-bulk-operations"]:not(:disabled)', table).attr('checked', this.checked);
+ 
+       // Toggle the visibility of the "select all" row (if any).
+@@ -122,4 +138,25 @@
+     });
+   }
+ 
++  // Instantiate all checkboxes to call the toggleEntityIDs function on click
++  Drupal.vbo.initPreserveSelectBehaviors = function(form) {
++    var view_machine_name = $('form', form).attr('view_machine_name');
++    $('input[id^="edit-views-bulk-operations"]', form).each(function() {
++      var entity_id = $(this).val();
++      $(this).click(function(event){
++	    Drupal.vbo.toggleEntityIDs([entity_id], view_machine_name);
++	  });
++    });
++  }
++
++  // Preserve the selection status of the checkbox via an AJAX call
++  // Parameters are the machine_name of the relative view, and a comma-separated list of entity_ids
++  Drupal.vbo.toggleEntityIDs = function(entity_ids_array, view_machine_name){
++    $.ajax({
++      type: 'GET',
++      url: '/vbo_preserve_selection/toggle/' + view_machine_name + '/' + entity_ids_array.join(','),
++      dataType: 'json'
++    });
++  }
++
+ })(jQuery);
+diff --git a/docroot/sites/all/modules/contrib/views_bulk_operations/views/views_bulk_operations_handler_field_operations.inc b/docroot/sites/all/modules/contrib/views_bulk_operations/views/views_bulk_operations_handler_field_operations.inc
+index 9bb983f..d59875f 100644
+--- a/docroot/sites/all/modules/contrib/views_bulk_operations/views/views_bulk_operations_handler_field_operations.inc
++++ b/docroot/sites/all/modules/contrib/views_bulk_operations/views/views_bulk_operations_handler_field_operations.inc
+@@ -251,10 +251,15 @@ class views_bulk_operations_handler_field_operations extends views_handler_field
+         );
+       }
+       else {
++        // Get the SESSION stored list of entity_ids that are toggled-on/selected
++        $preserved_selection = array();
++        if( isset($_SESSION['views_bulk_operations']['preserve_selection'][$this->view->name]['values']) )
++          $preserved_selection = array_keys(array_filter($_SESSION['views_bulk_operations']['preserve_selection'][$this->view->name]['values']));
++
+         $form[$this->options['id']][$row_index] = array(
+           '#type' => 'checkbox',
+           '#return_value' => $entity_id,
+-          '#default_value' => FALSE,
++          '#default_value' => in_array($entity_id, $preserved_selection),
+           '#attributes' => array('class' => array('vbo-select')),
+         );
+       }
+diff --git a/docroot/sites/all/modules/contrib/views_bulk_operations/views_bulk_operations.module b/docroot/sites/all/modules/contrib/views_bulk_operations/views_bulk_operations.module
+index b25b661..e6e833b 100644
+--- a/docroot/sites/all/modules/contrib/views_bulk_operations/views_bulk_operations.module
++++ b/docroot/sites/all/modules/contrib/views_bulk_operations/views_bulk_operations.module
+@@ -451,6 +451,7 @@ function views_bulk_operations_form($form, &$form_state, $vbo) {
+   }
+   $form['#prefix'] = '<div class="' . $class . '">';
+   $form['#suffix'] = '</div>';
++  $form['#attributes'] = array('view_machine_name' => array($vbo->view->name));
+ 
+   // Force browser to reload the page if Back is hit.
+   if (!empty($_SERVER['HTTP_USER_AGENT']) && preg_match('/msie/i', $_SERVER['HTTP_USER_AGENT'])) {
+@@ -616,7 +617,7 @@ function theme_views_bulk_operations_confirmation($variables) {
+   $rows = $variables['rows'];
+   $items = array();
+   // Load the entities from the current page, and show their titles.
+-  $entities = _views_bulk_operations_entity_load($entity_type, array_values($rows), $vbo->revision);
++  $entities = _views_bulk_operations_entity_load($entity_type, $rows, $vbo->revision);
+   foreach ($entities as $entity) {
+     $items[] = check_plain(_views_bulk_operations_entity_label($entity_type, $entity));
+   }
+@@ -640,14 +641,15 @@ function _views_bulk_operations_get_selection($vbo, $form_state) {
+   $selection = array();
+   $field_name = $vbo->options['id'];
+ 
+-  if (!empty($form_state['values'][$field_name])) {
+-    // If using "force single", the selection needs to be converted to an array.
+-    if (is_array($form_state['values'][$field_name])) {
+-      $selection = array_filter($form_state['values'][$field_name]);
+-    }
+-    else {
+-      $selection = array($form_state['values'][$field_name]);
+-    }
++  // Use this function for getting all rows/results of the view
++  views_bulk_operations_direct_adjust($selection, $vbo);
++  if($form_state['values']['select_all']) {
++    return $selection;
++  }
++  foreach($selection as $item_idx=>$item_val) {
++    if( is_array($_SESSION['views_bulk_operations']['preserve_selection'][$vbo->view->name]['values']) && !in_array($item_val, array_keys(array_filter($_SESSION['views_bulk_operations']['preserve_selection'][$vbo->view->name]['values']))) ) {
++	    unset($selection[$item_idx]);
++	  }
+   }
+ 
+   return $selection;
+@@ -692,6 +694,9 @@ function views_bulk_operations_form_submit($form, &$form_state) {
+   // Execute the operation.
+   views_bulk_operations_execute($vbo, $form_state['operation'], $form_state['selection'], $form_state['select_all_pages']);
+ 
++  // Clear the in-session stored selections
++  $_SESSION['views_bulk_operations']['preserve_selection'][$vbo->view->name]['values'] = array();
++
+   // Redirect.
+   $query = drupal_get_query_parameters($_GET, array('q'));
+   $form_state['redirect'] = array('path' => $vbo->view->get_url(), array('query' => $query));
+@@ -1281,3 +1286,31 @@ function _views_bulk_operations_log($msg) {
+     drupal_set_message($msg);
+   }
+ }
++
++/**
++ * Implements hook_menu().
++ * Store selections in a SESSION variable.
++ */
++function views_bulk_operations_menu() {
++  $items = array();
++  $items['vbo_preserve_selection/toggle'] = array (
++    'title' => 'AJAX add/remove from SESSION list',
++    'page callback' => '_views_bulk_operations_ajax_toggle',
++    'type' => MENU_CALLBACK,
++    'access arguments' => array('access content'),
++  );
++  return $items;
++}
++
++function _views_bulk_operations_ajax_toggle($views_machine_name, $entity_ids) {
++  if( !isset($_SESSION['views_bulk_operations']) )
++    $_SESSION['views_bulk_operations'] = array('preserve_selection'=>array($views_machine_name=>array('values'=>array())));
++
++  foreach( explode(',', $entity_ids) as $entity_id ){
++    if( isset($_SESSION['views_bulk_operations']['preserve_selection'][$views_machine_name]['values'][$entity_id]) &&
++    $_SESSION['views_bulk_operations']['preserve_selection'][$views_machine_name]['values'][$entity_id])
++      unset($_SESSION['views_bulk_operations']['preserve_selection'][$views_machine_name]['values'][$entity_id]);
++    else
++      $_SESSION['views_bulk_operations']['preserve_selection'][$views_machine_name]['values'][$entity_id] = 1;
++  }
++}
