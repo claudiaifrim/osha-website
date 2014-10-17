@@ -1,0 +1,6 @@
+name = ESENER
+description = Enterprise survey on new and emerging risks
+core = 7.x
+package = OSHA
+version = 7.x-1.0
+project = osha_esener
