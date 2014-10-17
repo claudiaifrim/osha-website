@@ -371,6 +371,7 @@ $options['init-modules'] = array(
   'osha_workflow',
   'osha_blocks',
   'osha_breadcrumbs',
+  'osha_esener',
 //  'osha_content',
 
   'facetapi',
