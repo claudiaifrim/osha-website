@@ -6,14 +6,13 @@
 
 include_once 'osha_admin_reports.features.inc';
 
-define('OSHA_ADMIN_REPORT_PATH', 'public://views_data_export_xls');
 
 /**
  * Implements hook_cron().
  */
 function osha_admin_reports_cron() {
   // Remove old reports.
-  $files = file_scan_directory(OSHA_ADMIN_REPORT_PATH, '/.*\.xls$/');
+  $files = file_scan_directory(file_directory_temp(), '/views_data_export_.*\.xls$/');
   if (!empty($files)) {
     foreach (array_keys($files) as $file) {
       if (filemtime(drupal_realpath($file)) < strtotime("-1 day")) {
@@ -67,13 +66,13 @@ function template_preprocess_views_data_export_xlsx(&$vars) {
       $data[$key] = array_values($row);
     }
 
-    $excel_dir = OSHA_ADMIN_REPORT_PATH;
+    $excel_dir = file_directory_temp();
     $excel_filename = 'views_data_export_' . time() . '_' . $user->uid . '.xls';
     if (!file_prepare_directory($excel_dir, FILE_CREATE_DIRECTORY)) {
       drupal_set_message(strtr('The @dir directory could not be created or it is not writable', array('@dir' => $excel_dir)), 'error');
       drupal_goto();
     }
-    $path = drupal_realpath($excel_dir . '/' . $excel_filename);
+    $path = $excel_dir . '/' . $excel_filename;
     module_load_include('inc', 'phpexcel', 'phpexcel');
     phpexcel_export($headers, $data, $path);
     $vars['body'] = file_get_contents($path);
