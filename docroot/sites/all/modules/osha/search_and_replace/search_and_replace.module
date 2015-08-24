@@ -92,6 +92,17 @@ function search_and_replace_menu() {
 }
 
 /**
+ * Implements hook_menu_alter().
+ */
+function search_and_replace_menu_alter(&$items) {
+  if (isset($items['admin/content/scanner'])) {
+    // unset the default Search & Replace menu entries
+    unset($items['admin/content/scanner']);
+    unset($items['admin/content/scanner/settings']);
+  }
+}
+
+/**
  * Implements hook_permission().
  */
 function search_and_replace_permission() {
