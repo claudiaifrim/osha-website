@@ -430,6 +430,10 @@ $options['init-modules'] = array(
 
   'views_json',
 
+  'views_data_export',
+  'phpexcel',
+  'osha_admin_reports',
+
   //Allow anonymous comments per node type
   'comment_allow_anonymous',
 
