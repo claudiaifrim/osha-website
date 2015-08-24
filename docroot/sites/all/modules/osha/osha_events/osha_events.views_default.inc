@@ -159,7 +159,12 @@ function osha_events_views_default_views() {
   $handler->display->display_options['filters']['status']['field'] = 'status';
   $handler->display->display_options['filters']['status']['value'] = 1;
   $handler->display->display_options['filters']['status']['group'] = 1;
-  $handler->display->display_options['filters']['status']['expose']['operator'] = FALSE;
+  $handler->display->display_options['filters']['status']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['status']['expose']['operator_id'] = '';
+  $handler->display->display_options['filters']['status']['expose']['label'] = 'Published';
+  $handler->display->display_options['filters']['status']['expose']['operator'] = 'status_op';
+  $handler->display->display_options['filters']['status']['expose']['identifier'] = 'status';
+  $handler->display->display_options['filters']['status']['expose']['required'] = TRUE;
   /* Filter criterion: Content: Type */
   $handler->display->display_options['filters']['type']['id'] = 'type';
   $handler->display->display_options['filters']['type']['table'] = 'node';
@@ -1144,6 +1149,68 @@ function osha_events_views_default_views() {
     'thousand_separator' => ' ',
     'prefix_suffix' => 1,
   );
+  $handler->display->display_options['defaults']['filter_groups'] = FALSE;
+  $handler->display->display_options['defaults']['filters'] = FALSE;
+  /* Filter criterion: Content: Type */
+  $handler->display->display_options['filters']['type']['id'] = 'type';
+  $handler->display->display_options['filters']['type']['table'] = 'node';
+  $handler->display->display_options['filters']['type']['field'] = 'type';
+  $handler->display->display_options['filters']['type']['value'] = array(
+    'events' => 'events',
+  );
+  $handler->display->display_options['filters']['type']['group'] = 1;
+  /* Filter criterion: Content: Published */
+  $handler->display->display_options['filters']['status']['id'] = 'status';
+  $handler->display->display_options['filters']['status']['table'] = 'node';
+  $handler->display->display_options['filters']['status']['field'] = 'status';
+  $handler->display->display_options['filters']['status']['value'] = '1';
+  $handler->display->display_options['filters']['status']['group'] = 1;
+  $handler->display->display_options['filters']['status']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['status']['expose']['operator_id'] = '';
+  $handler->display->display_options['filters']['status']['expose']['label'] = 'Published';
+  $handler->display->display_options['filters']['status']['expose']['operator'] = 'status_op';
+  $handler->display->display_options['filters']['status']['expose']['identifier'] = 'status';
+  $handler->display->display_options['filters']['status']['expose']['required'] = TRUE;
+  $handler->display->display_options['filters']['status']['expose']['remember_roles'] = array(
+    2 => '2',
+    1 => 0,
+    3 => 0,
+    4 => 0,
+    5 => 0,
+    6 => 0,
+    7 => 0,
+    8 => 0,
+    9 => 0,
+    10 => 0,
+    11 => 0,
+    12 => 0,
+    13 => 0,
+  );
+  /* Filter criterion: Content: Color (field_color) */
+  $handler->display->display_options['filters']['field_color_value']['id'] = 'field_color_value';
+  $handler->display->display_options['filters']['field_color_value']['table'] = 'field_data_field_color';
+  $handler->display->display_options['filters']['field_color_value']['field'] = 'field_color_value';
+  $handler->display->display_options['filters']['field_color_value']['group'] = 1;
+  $handler->display->display_options['filters']['field_color_value']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['field_color_value']['expose']['operator_id'] = 'field_color_value_op';
+  $handler->display->display_options['filters']['field_color_value']['expose']['label'] = 'Color (field_color)';
+  $handler->display->display_options['filters']['field_color_value']['expose']['operator'] = 'field_color_value_op';
+  $handler->display->display_options['filters']['field_color_value']['expose']['identifier'] = 'field_color_value';
+  $handler->display->display_options['filters']['field_color_value']['expose']['remember_roles'] = array(
+    2 => '2',
+    1 => 0,
+    3 => 0,
+    4 => 0,
+    5 => 0,
+    6 => 0,
+    7 => 0,
+    8 => 0,
+    9 => 0,
+    10 => 0,
+    11 => 0,
+    12 => 0,
+    13 => 0,
+  );
   $handler->display->display_options['path'] = 'admin/content/events-export';
   $handler->display->display_options['displays'] = array(
     'page' => 'page',
@@ -1184,6 +1251,7 @@ function osha_events_views_default_views() {
     t('Comments / Summary after event'),
     t('Number of attendees'),
     t('Satisfaction rate'),
+    t('Published'),
     t('<p>
 <a href="/en/node/add/events">Add event</a>
 </p>'),
@@ -1208,11 +1276,11 @@ function osha_events_views_default_views() {
 <li>[delete_node]</li>
 </ul>'),
     t('Name'),
-    t('Published'),
     t('Block'),
     t('Location'),
     t('[field_start_date_1] - Events'),
     t('Data export'),
+    t('Color (field_color)'),
   );
   $export['events'] = $view;
 
