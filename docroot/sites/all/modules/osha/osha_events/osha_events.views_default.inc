@@ -1035,30 +1035,16 @@ function osha_events_views_default_views() {
   $handler->display->display_options['fields']['field_city']['field'] = 'field_city';
   $handler->display->display_options['fields']['field_city']['ui_name'] = 'City';
   $handler->display->display_options['fields']['field_city']['element_label_colon'] = FALSE;
-  /* Field: Start date */
+  /* Field: Event date */
   $handler->display->display_options['fields']['field_start_date']['id'] = 'field_start_date';
   $handler->display->display_options['fields']['field_start_date']['table'] = 'field_data_field_start_date';
   $handler->display->display_options['fields']['field_start_date']['field'] = 'field_start_date';
-  $handler->display->display_options['fields']['field_start_date']['ui_name'] = 'Start date';
+  $handler->display->display_options['fields']['field_start_date']['ui_name'] = 'Event date';
   $handler->display->display_options['fields']['field_start_date']['element_label_colon'] = FALSE;
   $handler->display->display_options['fields']['field_start_date']['type'] = 'date_plain';
   $handler->display->display_options['fields']['field_start_date']['settings'] = array(
     'format_type' => 'osha_day_only',
-    'fromto' => 'value',
-    'multiple_number' => '',
-    'multiple_from' => '',
-    'multiple_to' => '',
-  );
-  /* Field: End date */
-  $handler->display->display_options['fields']['field_start_date_1']['id'] = 'field_start_date_1';
-  $handler->display->display_options['fields']['field_start_date_1']['table'] = 'field_data_field_start_date';
-  $handler->display->display_options['fields']['field_start_date_1']['field'] = 'field_start_date';
-  $handler->display->display_options['fields']['field_start_date_1']['ui_name'] = 'End date';
-  $handler->display->display_options['fields']['field_start_date_1']['label'] = 'End date';
-  $handler->display->display_options['fields']['field_start_date_1']['type'] = 'date_plain';
-  $handler->display->display_options['fields']['field_start_date_1']['settings'] = array(
-    'format_type' => 'osha_day_only',
-    'fromto' => 'value2',
+    'fromto' => 'both',
     'multiple_number' => '',
     'multiple_from' => '',
     'multiple_to' => '',
@@ -1110,6 +1096,7 @@ function osha_events_views_default_views() {
   $handler->display->display_options['fields']['field_organised_by']['field'] = 'field_organised_by';
   $handler->display->display_options['fields']['field_organised_by']['ui_name'] = 'Organised by';
   $handler->display->display_options['fields']['field_organised_by']['element_label_colon'] = FALSE;
+  $handler->display->display_options['fields']['field_organised_by']['type'] = 'taxonomy_term_reference_plain';
   $handler->display->display_options['fields']['field_organised_by']['delta_offset'] = '0';
   /* Field: Event in AMP */
   $handler->display->display_options['fields']['field_event_in_amp']['id'] = 'field_event_in_amp';
