@@ -156,3 +156,37 @@ function osha_events_user_role_insert($role) {
     ));
   }
 }
+
+/**
+ * Implements hook_phpexcel_export().
+ */
+function osha_events_phpexcel_export($op, &$data, &$phpexcel, $options, $column = NULL, $row = NULL) {
+  $xls_colours = array(
+    'Black' => '000000',
+    'Red' => 'FF0000',
+    'Grey' => '808080',
+    'Yellow' => 'FFFF00',
+    'Green' => '008000',
+    'Blue' => '0000FF'
+  );
+  switch($op) {
+    case 'post cell':
+      if ($row == 1) {
+        // first row
+        $styleArray = array('font'  => array('bold' => TRUE));
+        $phpexcel->getStyleByColumnAndRow($column,$row)->applyFromArray($styleArray);
+      } else {
+        // use the color named in the first cell of the current row
+        $first_cell = $phpexcel->getCellByColumnAndRow(0, $row)->getValue();
+        if (!empty($xls_colours[$first_cell])) {
+          $styleArray = array(
+            'font'  => array(
+              'color' => array('rgb' => $xls_colours[$first_cell])
+            )
+          );
+          $phpexcel->getStyleByColumnAndRow($column,$row)->applyFromArray($styleArray);
+        }
+      }
+      break;
+  }
+}
