@@ -223,6 +223,17 @@ function osha_tmgmt_translation_validators_submit($form, &$form_state) {
         $entity_group = entity_collection_load($group_id);
         $users = osha_tmgmt_get_users_from_collection($group_id);
         $users = osha_workflow_users_group_by_lang_skills($users, $job_item->source_language);
+        // CW-1766: Notify the current validator if his action is no longer required
+        if ($job_item->state == OSHA_TMGMT_JOB_ITEM_STATE_TranslationValidationRequired) {
+          $removed_validators = osha_tmgmt_load_validators_by_job_item($job_item);
+          $old_current_validator = osha_tmgmt_load_validators_next($removed_validators);
+          $new_current_validator = $users[$job_item->target_language][0];
+          if (!empty($old_current_validator) && $old_current_validator->uid != $new_current_validator->uid) {
+            OshaWorkflowNotifications::notifyTranslationValidatorsRemoved($old_current_validator, $job_item);
+            OshaWorkflowNotifications::sendEmail($new_current_validator, array('tmgmt_job_item' => $job_item), 'osha_tmgmt');
+          }
+        }
+
         // Cancel existing validators.
         osha_tmgmt_remove_current_translation_validators($job_item);
         if (!empty($users[$job_item->target_language])) {
@@ -603,10 +614,21 @@ function osha_tmgmt_job_item_validators_form_validate($form, &$form_state) {
  */
 function osha_tmgmt_job_item_validators_form_submit($form, &$form_state) {
   if (!empty($form_state['values']['rows'])) {
-    osha_tmgmt_remove_current_translation_validators($form_state['jobItem']);
     $validators = array();
+    $removed_validators = osha_tmgmt_load_validators_by_job_item($form_state['jobItem']);
+    $old_current_validator = osha_tmgmt_load_validators_next($removed_validators);
     foreach ($form_state['values']['rows'] as $row) {
       $validators[$row['weight']] = $row;
+      unset($removed_validators[$row['uid']]);
+    }
+    osha_tmgmt_remove_current_translation_validators($form_state['jobItem']);
+    if ($form_state['jobItem']->state == OSHA_TMGMT_JOB_ITEM_STATE_TranslationValidationRequired) {
+      foreach ($removed_validators as $removed_validator) {
+        // CW-1766: Notify the current content validator that is no longer required to do anything
+        if ($removed_validator->next) {
+            OshaWorkflowNotifications::notifyTranslationValidatorsRemoved($removed_validator, $form_state['jobItem']);
+        }
+      }
     }
     ksort($validators);
     $idx = 0;
@@ -615,6 +637,11 @@ function osha_tmgmt_job_item_validators_form_submit($form, &$form_state) {
       $next = 0;
       if ($idx == 0) {
         $next = 1;
+        // if current state is translation validation required, notify the new "current" (if different)
+        if ($form_state['jobItem']->state == OSHA_TMGMT_JOB_ITEM_STATE_TranslationValidationRequired && $old_current_validator->uid != $validator['uid']) {
+          $current_user = user_load($validator['uid']);
+          OshaWorkflowNotifications::sendEmail($current_user, array('tmgmt_job_item' => $form_state['jobItem']), 'osha_tmgmt');
+        }
       }
       $idx++;
       $validators_name[] = $form_state['rows'][$validator['uid']]->name;
