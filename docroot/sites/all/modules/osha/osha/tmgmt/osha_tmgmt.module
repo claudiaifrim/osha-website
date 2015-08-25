@@ -1763,6 +1763,12 @@ function osha_tmgmt_job_items_mass_change_submit($form, $form_state) {
     $id = $job_item->item_type . '-' . $job_item->item_id;
     if (in_array($id , $publish) && $job_item->state != $new_state) {
       // Change the state
+      if ($job_item->state == OSHA_TMGMT_JOB_ITEM_STATE_TranslationValidationRequired) {
+        // CW-1766: Notify the current validator that his action is no longer required
+        $removed_validators = osha_tmgmt_load_validators_by_job_item($job_item);
+        $old_current_validator = osha_tmgmt_load_validators_next($removed_validators);
+        OshaWorkflowNotifications::notifyTranslationValidatorsRemoved($old_current_validator, $job_item);
+      }
       switch ($new_state) {
         case TMGMT_JOB_ITEM_STATE_ACTIVE:
           $job_item->toOnTranslation('Mass updated by ' . $user->name);
@@ -2294,7 +2300,7 @@ function osha_tmgmt_mail($key, &$message, $params) {
     $subject = variable_get('osha_mail_template_content_validator_removed_subject', '[OSHA Website] CMW: [tmgmt_job_item:tjid:label]');
     $body = variable_get('osha_mail_template_content_validator_removed_body',
       'Dear [user:name],
-      The website administrator decided that your review of translation task <a href="[tmgmt_job_item:url]">[tmgmt_job_item:tjid:label]</a> is no longer needed.
+      The website administrator decided that your review of translation task <a href="[tmgmt_job_item:url]">[tmgmt_job_item:tjid:label] ([tmgmt_job_item:target-language])</a> is no longer needed.
 
       Thank you,'
     );
@@ -2304,7 +2310,7 @@ function osha_tmgmt_mail($key, &$message, $params) {
     $subject = variable_get('osha_mail_template_translation_job_item_subject', '[OSHA Website] CMW: [tmgmt_job_item:tjid:label]');
     $body = variable_get('osha_mail_template_translation_job_item_body',
       'Dear [user:name],
-      You have a translation task that needs your attention <a href="[tmgmt_job_item:url]">[tmgmt_job_item:tjid:label]</a>.
+      You have a translation task that needs your attention <a href="[tmgmt_job_item:url]">[tmgmt_job_item:tjid:label] ([tmgmt_job_item:target-language])</a>.
 
       Thank you,'
     );
